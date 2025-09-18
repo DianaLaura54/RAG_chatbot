@@ -2,3 +2,4 @@ This was my diploma project. My chatbot StorySage answers questions from childre
 user wants query optimization or the use of reranker. Has a "generate random question" option that generates a question from my QA pairs CSV file where I stored 500 QA from the books.
 It also features a quiz selection and generator option from those books. It uses metrics such as BERTScore and ROUGE-L, has different kind of plots, extracts the images that belong to the chunks returned. It has text to speech option that makes the answer easier 
 for children to understand.
+I have pages for the metrics of the last response and metrics for the overall responses of the chatbot(including graphs of the responses for the chunk-answer,answer-response,chunk-response). I also have a page for the stored scores and responses from the CSV with full entry details.
