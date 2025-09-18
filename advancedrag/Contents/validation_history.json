@@ -1,0 +1,203 @@
+[
+  {
+    "chunking_method": "standard",
+    "embedding_model": "all-MiniLM-L6-v2",
+    "results": {
+      "pdf_processing": {
+        "is_valid": true,
+        "errors": [],
+        "warnings": [],
+        "statistics": {
+          "total_pages": 568,
+          "unique_sources": 10,
+          "avg_content_length": 1333.9595070422536,
+          "median_content_length": 1166.0,
+          "empty_pages": 0,
+          "pages_with_minimal_content": 12,
+          "pages_with_substantial_content": 393,
+          "max_content_length": 11354,
+          "min_content_length": 10,
+          "content_length_std": 1302.2638178447105
+        }
+      },
+      "chunking": {
+        "is_valid": true,
+        "errors": [],
+        "warnings": [],
+        "statistics": {
+          "total_chunks": 1134,
+          "avg_chunk_length": 654.1887125220459,
+          "median_chunk_length": 795.0,
+          "avg_words_per_chunk": 120.99029982363315,
+          "median_words_per_chunk": 152.0,
+          "min_chunk_words": 2,
+          "max_chunk_words": 243,
+          "chunks_too_short": 28,
+          "chunks_too_long": 0,
+          "chunks_optimal_size": 891,
+          "chunks_start_with_capital": 846,
+          "chunks_end_with_punctuation": 740,
+          "unique_sources": 10,
+          "avg_special_char_ratio": 0.0509783326767422,
+          "chunks_with_numeric_content": 390
+        }
+      },
+      "embeddings": {
+        "is_valid": true,
+        "errors": [],
+        "warnings": [],
+        "statistics": {
+          "total_embeddings": 1134,
+          "embedding_dimension": 384,
+          "consistent_dimensions": true,
+          "avg_norm": 1.0,
+          "median_norm": 1.0,
+          "norm_std": 4.315770851803791e-08,
+          "min_norm": 0.9999998807907104,
+          "max_norm": 1.0000001192092896,
+          "embeddings_with_nan": 0,
+          "embeddings_with_inf": 0,
+          "avg_mean_value": -0.0009194822632707655,
+          "avg_std_value": 0.051015157252550125,
+          "very_sparse_embeddings": 0,
+          "balanced_embeddings": 1134
+        }
+      }
+    },
+    "timestamp": "2025-09-18T14:31:34.673427"
+  },
+  {
+    "chunking_method": "semantic",
+    "embedding_model": "multi-qa-MiniLM-L6-cos-v1",
+    "results": {
+      "pdf_processing": {
+        "is_valid": true,
+        "errors": [],
+        "warnings": [],
+        "statistics": {
+          "total_pages": 568,
+          "unique_sources": 10,
+          "avg_content_length": 1333.9595070422536,
+          "median_content_length": 1166.0,
+          "empty_pages": 0,
+          "pages_with_minimal_content": 12,
+          "pages_with_substantial_content": 393,
+          "max_content_length": 11354,
+          "min_content_length": 10,
+          "content_length_std": 1302.2638178447105
+        }
+      },
+      "chunking": {
+        "is_valid": true,
+        "errors": [],
+        "warnings": [],
+        "statistics": {
+          "total_chunks": 1736,
+          "avg_chunk_length": 358.883064516129,
+          "median_chunk_length": 316.0,
+          "avg_words_per_chunk": 66.5610599078341,
+          "median_words_per_chunk": 60.0,
+          "min_chunk_words": 50,
+          "max_chunk_words": 217,
+          "chunks_too_short": 0,
+          "chunks_too_long": 0,
+          "chunks_optimal_size": 1736,
+          "chunks_start_with_capital": 1736,
+          "chunks_end_with_punctuation": 1446,
+          "unique_sources": 10,
+          "avg_special_char_ratio": 0.04867394392675142,
+          "chunks_with_numeric_content": 285
+        }
+      },
+      "embeddings": {
+        "is_valid": true,
+        "errors": [],
+        "warnings": [],
+        "statistics": {
+          "total_embeddings": 1736,
+          "embedding_dimension": 384,
+          "consistent_dimensions": true,
+          "avg_norm": 1.0,
+          "median_norm": 1.0,
+          "norm_std": 4.518330243286073e-08,
+          "min_norm": 0.9999998807907104,
+          "max_norm": 1.0000001192092896,
+          "embeddings_with_nan": 0,
+          "embeddings_with_inf": 0,
+          "avg_mean_value": -0.001043253461830318,
+          "avg_std_value": 0.05101294443011284,
+          "very_sparse_embeddings": 0,
+          "balanced_embeddings": 1736
+        }
+      }
+    },
+    "timestamp": "2025-09-18T14:51:47.552660"
+  },
+  {
+    "chunking_method": "standard",
+    "embedding_model": "all-MiniLM-L6-v2",
+    "results": {
+      "pdf_processing": {
+        "is_valid": true,
+        "errors": [],
+        "warnings": [],
+        "statistics": {
+          "total_pages": 568,
+          "unique_sources": 10,
+          "avg_content_length": 1333.9595070422536,
+          "median_content_length": 1166.0,
+          "empty_pages": 0,
+          "pages_with_minimal_content": 12,
+          "pages_with_substantial_content": 393,
+          "max_content_length": 11354,
+          "min_content_length": 10,
+          "content_length_std": 1302.2638178447105
+        }
+      },
+      "chunking": {
+        "is_valid": true,
+        "errors": [],
+        "warnings": [],
+        "statistics": {
+          "total_chunks": 1134,
+          "avg_chunk_length": 654.1887125220459,
+          "median_chunk_length": 795.0,
+          "avg_words_per_chunk": 120.99029982363315,
+          "median_words_per_chunk": 152.0,
+          "min_chunk_words": 2,
+          "max_chunk_words": 243,
+          "chunks_too_short": 28,
+          "chunks_too_long": 0,
+          "chunks_optimal_size": 891,
+          "chunks_start_with_capital": 846,
+          "chunks_end_with_punctuation": 740,
+          "unique_sources": 10,
+          "avg_special_char_ratio": 0.0509783326767422,
+          "chunks_with_numeric_content": 390
+        }
+      },
+      "embeddings": {
+        "is_valid": true,
+        "errors": [],
+        "warnings": [],
+        "statistics": {
+          "total_embeddings": 1134,
+          "embedding_dimension": 384,
+          "consistent_dimensions": true,
+          "avg_norm": 1.0,
+          "median_norm": 1.0,
+          "norm_std": 4.315770851803791e-08,
+          "min_norm": 0.9999998807907104,
+          "max_norm": 1.0000001192092896,
+          "embeddings_with_nan": 0,
+          "embeddings_with_inf": 0,
+          "avg_mean_value": -0.0009194822632707655,
+          "avg_std_value": 0.051015157252550125,
+          "very_sparse_embeddings": 0,
+          "balanced_embeddings": 1134
+        }
+      }
+    },
+    "timestamp": "2025-09-18T15:41:00.272471"
+  }
+]

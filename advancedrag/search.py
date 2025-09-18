@@ -5,7 +5,7 @@ import spacy
 
 from embeddings import get_embedding_model
 
-
+from ge_integration import validate_search_pipeline, RAGDataValidator
 nlp = spacy.load("en_core_web_sm", disable=["parser", "ner", "tagger"])
 
 
@@ -55,7 +55,13 @@ def bm25_search(bm25_model, tokenized_corpus, texts, metadata, query, n_results=
         if len(results) >= n_results:
             break
     return results
+from ge_integration import validate_search_pipeline, RAGDataValidator
 
+def validated_semantic_search(index, texts, metadata, query, **kwargs):
+    results = semantic_search(index, texts, metadata, query, **kwargs)
+    validator = RAGDataValidator()
+    validation = validate_search_pipeline(query, results, "semantic", validator)
+    return results, validation
 
 def hybrid_search(index, bm25_model, tokenized_corpus, texts, metadata, query,n_semantic=7, n_lexical=5, alpha=0.7, n_results=5, model_name=None):
     semantic_results = semantic_search(index, texts, metadata, query, n_semantic, model_name)
@@ -118,3 +124,12 @@ def hybrid_search(index, bm25_model, tokenized_corpus, texts, metadata, query,n_
         })
     return final_results
 
+
+def validate_search_results(query, results, search_method):
+    validator = RAGDataValidator()
+    validation = validate_search_pipeline(query, results, search_method, validator)
+
+    if validation["warnings"]:
+        print(f"Search quality warnings: {validation['warnings']}")
+
+    return validation

@@ -32,20 +32,38 @@ from lexical import (
 from reranking import reranker, get_available_reranker_models, get_default_reranker_model
 
 
-class SingleQuestionTester:
-    def __init__(self, base_path: str = r"Contents"):
+try:
+    from ge_integration import RAGDataValidator
+
+    VALIDATION_AVAILABLE = True
+except ImportError:
+    print("Warning: Validation module not available. Running without data validation.")
+    VALIDATION_AVAILABLE = False
+    RAGDataValidator = None
+
+
+class EnhancedSingleQuestionTester:
+    def __init__(self, base_path: str = "Contents"):
         self.base_path = base_path
         self.folder_path = os.path.join(base_path, "books")
         self.csv_path = os.path.join(base_path, "file.csv")
         self.test_question = "Who offered to help retrieve the golden ball?"
         self.test_answer = "A Frog who stretched his thick ugly head out of the water."
         self.book_title = "The Frog Prince"
+
+        # Initialize validation if available
+        if VALIDATION_AVAILABLE:
+            self.validator = RAGDataValidator(base_path)
+            print("Data validation enabled for testing")
+        else:
+            self.validator = None
+            print("Running tests without data validation")
+
         print(f"Testing question: '{self.test_question}'")
         print(f"Expected answer: '{self.test_answer}'")
-        print(f"Book title: '{self.book_title}' (The Frog Prince)")
-        print(f"Will test against:")
-        print(f"  - 'All PDFs' (search across all books)")
-        print(f"  - 'The Frog Prince")
+        print(f"Book title: '{self.book_title}'")
+
+        # Your existing initialization
         self.embedding_models = list(AVAILABLE_EMBEDDING_MODELS.keys())[:2]
         self.chunking_methods = ["standard", "semantic"]
         self.search_methods = ["semantic", "lexical", "hybrid"]
@@ -59,13 +77,16 @@ class SingleQuestionTester:
         self.available_pdfs = self._get_available_pdfs()
 
     def _get_available_pdfs(self) -> List[str]:
+        """Your existing _get_available_pdfs method"""
         try:
             pdf_files = [f for f in os.listdir(self.folder_path) if f.lower().endswith('.pdf')]
+
             def extract_number(filename):
                 try:
                     return int(filename.split('.')[0])
                 except:
                     return float('inf')
+
             pdf_files.sort(key=extract_number)
             pdf_options = ["All PDFs"]
             target_pdf = "The Frog Prince.pdf"
@@ -84,10 +105,13 @@ class SingleQuestionTester:
         return "The Frog Prince.pdf"
 
     def _ensure_indices_exist(self, chunking_method: str, embedding_model: str) -> bool:
+        """Enhanced version with validation"""
         faiss_path, _, _, _ = get_faiss_file_paths(chunking_method, embedding_model)
         bm25_path, _, _, _ = get_bm25_file_paths(chunking_method, embedding_model)
+
         if os.path.exists(faiss_path) and os.path.exists(bm25_path):
             return True
+
         print(f"Creating indices for {chunking_method} chunking with {embedding_model} embeddings...")
         try:
             set_embedding_model(embedding_model)
@@ -95,15 +119,33 @@ class SingleQuestionTester:
             if not all_files:
                 print("No files found in folder")
                 return False
+
             all_documents_with_pages, file_sources = [], []
             for file_path in all_files:
                 file_docs = process_files(file_path)
                 if file_docs:
                     all_documents_with_pages.append(file_docs)
                     file_sources.append(file_path)
+
             if not all_documents_with_pages:
                 print("No documents could be processed")
                 return False
+
+            # VALIDATION STEP 1: PDF Processing (if validator available)
+            if self.validator:
+                print("Validating PDF processing results...")
+                pdf_validation = self.validator.validate_pdf_processing_results(
+                    all_documents_with_pages, file_sources
+                )
+                if not pdf_validation["is_valid"]:
+                    print(f"WARNING: PDF processing issues: {pdf_validation['errors']}")
+                else:
+                    print("PDF processing validation passed")
+
+                stats = pdf_validation["statistics"]
+                print(f"PDF stats: {stats.get('total_pages', 0)} pages, {stats.get('unique_sources', 0)} sources")
+
+            # Chunking
             if chunking_method == "semantic":
                 try:
                     chunks, metadata = chunk_documents_semantic(all_documents_with_pages, file_sources)
@@ -112,19 +154,53 @@ class SingleQuestionTester:
                     chunks, metadata = chunk_documents(all_documents_with_pages, file_sources)
             else:
                 chunks, metadata = chunk_documents(all_documents_with_pages, file_sources)
+
+            # VALIDATION STEP 2: Chunking (if validator available)
+            if self.validator:
+                print("Validating chunking results...")
+                chunking_validation = self.validator.validate_chunking_results(chunks, metadata)
+                if not chunking_validation["is_valid"]:
+                    print(f"WARNING: Chunking quality issues: {chunking_validation['errors']}")
+                else:
+                    print("Chunking validation passed")
+
+                stats = chunking_validation["statistics"]
+                print(
+                    f"Chunk stats: {stats.get('total_chunks', 0)} chunks, avg {stats.get('avg_words_per_chunk', 0):.1f} words/chunk")
+
+            # Generate embeddings
             embeddings = batch_generate_embeddings(chunks, model_name=embedding_model)
+
+            # VALIDATION STEP 3: Embeddings (if validator available)
+            if self.validator:
+                print("Validating embeddings...")
+                embeddings_validation = self.validator.validate_embeddings(embeddings, chunks)
+                if not embeddings_validation["is_valid"]:
+                    print(f"ERROR: Embedding validation failed: {embeddings_validation['errors']}")
+                    return False  # Critical failure
+                else:
+                    print("Embeddings validation passed")
+
+                stats = embeddings_validation["statistics"]
+                print(
+                    f"Embedding stats: dim={stats.get('embedding_dimension', 0)}, norm={stats.get('avg_norm', 0):.3f}")
+
+            # Create and save indices
             index = create_faiss_index(embeddings, embeddings.shape[1])
-            save_faiss_data(index, embeddings, chunks, metadata, chunking_method=chunking_method, model_name=embedding_model)
+            save_faiss_data(index, embeddings, chunks, metadata, chunking_method=chunking_method,
+                            model_name=embedding_model)
             bm25_model, tokenized_corpus = create_bm25_index(chunks)
-            save_data(bm25_model, tokenized_corpus, chunks, metadata,chunking_method, embedding_model)
-            print(f"Successfully created indices for {chunking_method}/{embedding_model}")
+            save_data(bm25_model, tokenized_corpus, chunks, metadata, chunking_method, embedding_model)
+
+            print(f"Successfully created validated indices for {chunking_method}/{embedding_model}")
             return True
+
         except Exception as e:
             print(f"Error creating indices: {str(e)}")
             return False
 
-
     def _load_search_data(self, chunking_method: str, embedding_model: str) -> Dict[str, Any]:
+        """Your existing _load_search_data method"""
         try:
             set_embedding_model(embedding_model)
             index, embeddings, texts, metadata = load_faiss_data(chunking_method, embedding_model)
@@ -149,11 +225,14 @@ class SingleQuestionTester:
             print(f"Error loading search data: {str(e)}")
             return None
 
-
-    def _perform_search(self, query: str, search_data: Dict[str, Any], config: Dict[str, Any],selected_pdf: str = "All PDFs") -> List[Dict]:
+    def _perform_search_with_validation(self, query: str, search_data: Dict[str, Any], config: Dict[str, Any],
+                                        selected_pdf: str = "All PDFs"):
+        """Enhanced search with validation"""
         search_method = config['search_method']
         num_results = 5
         initial_num_results = num_results * 3 if config['use_reranker'] else num_results
+
+        # Perform search (your existing logic)
         if search_method == "semantic":
             results = semantic_search(
                 search_data['faiss_index'],
@@ -172,7 +251,7 @@ class SingleQuestionTester:
                 query,
                 n_results=initial_num_results
             )
-        else:
+        else:  # hybrid
             chunking_method = search_data.get('current_chunking_method', 'standard')
             alpha = config['alpha']
             if chunking_method == "semantic":
@@ -190,17 +269,30 @@ class SingleQuestionTester:
                 n_results=initial_num_results,
                 model_name=search_data['embedding_model_name']
             )
+
+        # Filter by PDF if needed
         if selected_pdf != "All PDFs" and results:
             filtered_results = filter_chunks_by_pdf(results, selected_pdf)
             if filtered_results:
                 results = filtered_results
+
+        # Apply reranking if needed
         if config['use_reranker'] and results:
             results = reranker(query, results, config['reranker_model'])[:num_results]
         else:
             results = results[:num_results]
-        return results
+
+        # VALIDATION: Search results quality (if validator available)
+        search_validation = None
+        if self.validator and results:
+            search_validation = self.validator.validate_search_results(results, query, search_method)
+            if search_validation["warnings"]:
+                print(f"Search quality warnings for {search_method}: {len(search_validation['warnings'])} issues")
+
+        return results, search_validation
 
     def _generate_response(self, query: str, chunks: List[Dict], llm_model: str) -> str:
+        """Your existing _generate_response method"""
         if not chunks:
             return "No relevant documents found."
         prompt_template = (
@@ -215,6 +307,7 @@ class SingleQuestionTester:
             return query_llama3(prompt_template, query, chunks)
 
     def _evaluate_response(self, chunks: List[Dict], response: str, actual_answer: str) -> Dict[str, float]:
+        """Your existing _evaluate_response method"""
         if not chunks:
             return {
                 'bert_score': 0.0,
@@ -247,14 +340,18 @@ class SingleQuestionTester:
             'max_chunk_answer_rouge_score': max_chunk_answer_rouge_score
         }
 
-    def _log_results(self, question: str, response: str, actual_answer: str, metrics: Dict[str, float], config: Dict[str, Any], selected_pdf: str):
+    def _log_results(self, question: str, response: str, actual_answer: str, metrics: Dict[str, float],
+                     config: Dict[str, Any], selected_pdf: str, search_validation: Dict = None):
+        """Enhanced logging with validation results"""
         csv_file = os.path.join(self.base_path, "scores_log.csv")
+
         def clean_text(text):
             if isinstance(text, str):
                 text = text.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
                 text = ' '.join(text.split())
                 text = text.replace('"', '""')
             return text
+
         row_data = {
             'question': clean_text(question),
             'response': clean_text(response),
@@ -272,55 +369,23 @@ class SingleQuestionTester:
             'Reranker Model': str(config.get('reranker_model', 'none')),
             'Chunking Method': config['chunking_method'],
             'QueryOptimization': str(config['use_query_optimization']),
-            'Embedding Model': config['embedding_model']
+            'Embedding Model': config['embedding_model'],
+            'Validation Warnings': len(search_validation['warnings']) if search_validation else 0,
+            'Search Quality Score': search_validation['statistics'].get('avg_text_quality',
+                                                                        0) if search_validation else 0
         }
+
         file_exists = os.path.exists(csv_file)
         with open(csv_file, 'a', newline='', encoding='utf-8-sig') as f:
-            fieldnames = [
-                'question', 'response', 'answer', 'selected_pdf', 'LLM Model', 'Search Type',
-                'ResponseChunkBERTScore', 'ResponseChunkRougeL', 'ResponseAnswerBERTScore',
-                'ResponseAnswerRougeL', 'ChunkAnswerBERTScore', 'ChunkAnswerRougeL',
-                'Reranker Used', 'Reranker Model', 'Chunking Method', 'QueryOptimization',
-                'Embedding Model'
-            ]
-            writer = csv.DictWriter(f,fieldnames=fieldnames,delimiter=';',quotechar='"',quoting=csv.QUOTE_MINIMAL,lineterminator='\n')
+            fieldnames = list(row_data.keys())
+            writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=';', quotechar='"',
+                                    quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
             if not file_exists:
                 writer.writeheader()
             writer.writerow(row_data)
-        print(f"    Logged to CSV: {csv_file}")
-
-
-    def _log_results_pandas(self, question: str, response: str, actual_answer: str,metrics: Dict[str, float], config: Dict[str, Any], selected_pdf: str):
-        csv_file = os.path.join(self.base_path, "scores_log.csv")
-        new_row = {
-            'question': question,
-            'response': response,
-            'answer': actual_answer,
-            'selected_pdf': selected_pdf,
-            'LLM Model': config['llm_model'],
-            'Search Type': config['search_method'],
-            'ResponseChunkBERTScore': round(metrics['bert_score'], 6),
-            'ResponseChunkRougeL': round(metrics['rouge_l_score'], 6),
-            'ResponseAnswerBERTScore': round(metrics['response_answer_bert_score'], 6),
-            'ResponseAnswerRougeL': round(metrics['response_answer_rouge_score'], 6),
-            'ChunkAnswerBERTScore': round(metrics['max_chunk_answer_bert_score'], 6),
-            'ChunkAnswerRougeL': round(metrics['max_chunk_answer_rouge_score'], 6),
-            'Reranker Used': config['use_reranker'],
-            'Reranker Model': config.get('reranker_model', 'none'),
-            'Chunking Method': config['chunking_method'],
-            'QueryOptimization': config['use_query_optimization'],
-            'Embedding Model': config['embedding_model']
-        }
-        new_df = pd.DataFrame([new_row])
-        if os.path.exists(csv_file):
-            new_df.to_csv(csv_file, mode='a', header=False, index=False, encoding='utf-8-sig')
-        else:
-            new_df.to_csv(csv_file, mode='w', header=True, index=False, encoding='utf-8-sig')
-        print(f"    Logged to CSV: {csv_file}")
-
-
 
     def _generate_configurations(self) -> List[Dict[str, Any]]:
+        """Your existing _generate_configurations method"""
         configs = []
         for embedding_model in self.embedding_models:
             for chunking_method in self.chunking_methods:
@@ -359,23 +424,24 @@ class SingleQuestionTester:
         return configs
 
     def run_test(self):
+        """Enhanced test runner with validation"""
         print(f"\n{'=' * 80}")
-        print("SINGLE QUESTION RAG TEST")
+        print("ENHANCED RAG TEST WITH DATA VALIDATION")
         print(f"Question from Book {self.book_title}: {self.test_question}")
         print(f"Expected Answer: {self.test_answer}")
-        print(f"Expected PDF: {self._get_expected_pdf_for_question()}")
+        print(f"Validation Status: {'ENABLED' if self.validator else 'DISABLED'}")
         print(f"{'=' * 80}")
+
         configs = self._generate_configurations()
         total_configs = len(configs)
         print(f"\nGenerated {total_configs} configuration combinations")
-        print(f"PDF testing strategy:")
-        print(f"  - All PDFs: Search across all books")
-        print(f"  - The Frog Prince")
-        print(f"  - Expected best result: The Frog Prince.pdf (since question is from book The Frog Prince)")
+
         total_tests = total_configs * len(self.available_pdfs)
         print(f"Total tests: {total_tests}")
+
         current_test = 0
         results_summary = []
+
         for config_idx, config in enumerate(configs):
             print(f"\n{'-' * 60}")
             print(f"Configuration {config_idx + 1}/{total_configs}")
@@ -385,17 +451,18 @@ class SingleQuestionTester:
             print(f"LLM: {config['llm_model']}")
             print(f"Reranker: {config['use_reranker']}")
             print(f"Query Opt: {config['use_query_optimization']}")
-            if config['search_method'] == 'hybrid':
-                print(f"Alpha: {config['alpha']}, Semantic: {config['n_semantic']}, Lexical: {config['n_lexical']}")
+
             if not self._ensure_indices_exist(config['chunking_method'], config['embedding_model']):
                 print(f"Skipping configuration due to index creation failure")
                 current_test += len(self.available_pdfs)
                 continue
+
             search_data = self._load_search_data(config['chunking_method'], config['embedding_model'])
             if search_data is None:
                 print(f"Skipping configuration due to data loading failure")
                 current_test += len(self.available_pdfs)
                 continue
+
             for pdf_option in self.available_pdfs:
                 current_test += 1
                 pdf_note = ""
@@ -403,7 +470,9 @@ class SingleQuestionTester:
                     pdf_note = " (EXPECTED BEST)"
                 elif pdf_option == "All PDFs":
                     pdf_note = " (ALL BOOKS)"
+
                 print(f"\n  Test {current_test}/{total_tests} - PDF: {pdf_option}{pdf_note}")
+
                 try:
                     search_query = self.test_question
                     if config['use_query_optimization']:
@@ -411,42 +480,38 @@ class SingleQuestionTester:
                         if optimized_queries and len(optimized_queries) > 1:
                             search_query = optimized_queries[1]
                             print(f"    Optimized query: {search_query}")
-                    chunks = self._perform_search(search_query, search_data, config, pdf_option)
+
+                    chunks, search_validation = self._perform_search_with_validation(
+                        search_query, search_data, config, pdf_option
+                    )
                     print(f"    Found {len(chunks)} chunks")
+
                     response = self._generate_response(search_query, chunks, config['llm_model'])
                     print(f"    Response: {response[:100]}...")
+
                     metrics = self._evaluate_response(chunks, response, self.test_answer)
-                    self._log_results(self.test_question, response, self.test_answer, metrics, config, pdf_option)
-                    result = {
-                        'config_idx': config_idx + 1,
-                        'pdf': pdf_option,
-                        'embedding': config['embedding_model'],
-                        'chunking': config['chunking_method'],
-                        'search': config['search_method'],
-                        'llm': config['llm_model'],
-                        'reranker': config['use_reranker'],
-                        'query_opt': config['use_query_optimization'],
-                        'bert_score': metrics['bert_score'],
-                        'rouge_l_score': metrics['rouge_l_score'],
-                        'response_answer_bert': metrics['response_answer_bert_score'],
-                        'response': response,
-                        'is_expected_pdf': pdf_option == self._get_expected_pdf_for_question(),
-                        'is_all_pdfs': pdf_option == "All PDFs"
-                    }
-                    if config['search_method'] == 'hybrid':
-                        result['alpha'] = config['alpha']
-                    results_summary.append(result)
+
+                    self._log_results(self.test_question, response, self.test_answer,
+                                      metrics, config, pdf_option, search_validation)
+
                     print(f"    BERTScore: {metrics['bert_score']:.4f}")
                     print(f"    Rouge-L: {metrics['rouge_l_score']:.4f}")
-                    print(f"    Answer BERTScore: {metrics['response_answer_bert_score']:.4f}")
+                    if search_validation:
+                        print(f"    Search Quality Warnings: {len(search_validation.get('warnings', []))}")
+
                 except Exception as e:
                     print(f"    Error: {str(e)}")
                     continue
 
+        print(f"\n{'=' * 80}")
+        print("TEST COMPLETED WITH ENHANCED VALIDATION")
+        print(f"{'=' * 80}")
+
 
 def main():
-    tester = SingleQuestionTester()
+    tester = EnhancedSingleQuestionTester()
     tester.run_test()
+
 
 if __name__ == "__main__":
     main()
