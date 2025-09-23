@@ -24,7 +24,7 @@ def main():
     def set_mode(selected_mode):
         st.session_state.mode = selected_mode
 
-    # Change from 2 columns to 3 columns
+
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -39,7 +39,7 @@ def main():
         if st.button("Validation Dashboard", key="validation", use_container_width=True):
             set_mode("validation")
 
-    # Handle navigation
+ 
     if st.session_state.mode == "normal2":
         st.switch_page("pages/mode_selection_chat.py")
     elif st.session_state.mode == "advanced2":
