@@ -82,7 +82,7 @@ def process_documents_from_folder_hybrid(folder_path, chunking_method="standard"
                                          similarity_threshold=0.6, model_name=None, enable_validation=True):
     print(f"Processing documents from {folder_path} using {chunking_method} chunking...")
 
-    # Import validation if enabled
+
     validator = None
     if enable_validation:
         try:
@@ -113,26 +113,25 @@ def process_documents_from_folder_hybrid(folder_path, chunking_method="standard"
         print("No document content extracted from files.")
         return None, None, None, None, None, None, []
 
-    # VALIDATION STEP 1: PDF Processing Results
+
     if enable_validation and validator:
         print("Validating PDF processing results...")
         pdf_validation = validator.validate_pdf_processing_results(all_documents_with_pages, file_sources)
 
         if not pdf_validation["is_valid"]:
-            print(f"❌ PDF Processing validation FAILED: {pdf_validation['errors']}")
-            # You can choose to continue or return None here
-            # return None, None, None, None, None, None, []
+            print(f" PDF Processing validation FAILED: {pdf_validation['errors']}")
+          
         else:
-            print(f"✅ PDF Processing validation PASSED")
+            print(f" PDF Processing validation PASSED")
 
         if pdf_validation["warnings"]:
-            print(f"⚠️  PDF Processing warnings: {pdf_validation['warnings']}")
+            print(f"  PDF Processing warnings: {pdf_validation['warnings']}")
 
-        # Print key statistics
+   
         stats = pdf_validation["statistics"]
-        print(f"📊 PDF Stats: {stats.get('total_pages', 0)} pages from {stats.get('unique_sources', 0)} sources")
+        print(f" PDF Stats: {stats.get('total_pages', 0)} pages from {stats.get('unique_sources', 0)} sources")
 
-    # Chunking
+  
     if chunking_method == "semantic":
         chunks, metadata = chunk_documents_semantic(
             all_documents_with_pages,
@@ -148,46 +147,46 @@ def process_documents_from_folder_hybrid(folder_path, chunking_method="standard"
 
     print(f"Created {len(chunks)} chunks using {chunking_method} chunking method.")
 
-    # VALIDATION STEP 2: Chunking Results
+  
     if enable_validation and validator:
         print("Validating chunking results...")
         chunking_validation = validator.validate_chunking_results(chunks, metadata)
 
         if not chunking_validation["is_valid"]:
-            print(f"❌ Chunking validation FAILED: {chunking_validation['errors']}")
-            # You can choose to continue or return None here
+            print(f" Chunking validation FAILED: {chunking_validation['errors']}")
+ 
         else:
-            print(f"✅ Chunking validation PASSED")
+            print(f" Chunking validation PASSED")
 
         if chunking_validation["warnings"]:
-            print(f"⚠️  Chunking warnings: {chunking_validation['warnings']}")
+            print(f"  Chunking warnings: {chunking_validation['warnings']}")
 
-        # Print key statistics
+     
         stats = chunking_validation["statistics"]
         print(
-            f"📊 Chunk Stats: Avg words/chunk: {stats.get('avg_words_per_chunk', 0):.1f}, Too short: {stats.get('chunks_too_short', 0)}, Too long: {stats.get('chunks_too_long', 0)}")
+            f" Chunk Stats: Avg words/chunk: {stats.get('avg_words_per_chunk', 0):.1f}, Too short: {stats.get('chunks_too_short', 0)}, Too long: {stats.get('chunks_too_long', 0)}")
 
     print("Generating embeddings...")
     embeddings = batch_generate_embeddings(chunks, model_name=model_name)
 
-    # VALIDATION STEP 3: Embeddings
+ 
     if enable_validation and validator:
         print("Validating embeddings...")
         embeddings_validation = validator.validate_embeddings(embeddings, chunks)
 
         if not embeddings_validation["is_valid"]:
-            print(f"❌ Embeddings validation FAILED: {embeddings_validation['errors']}")
+            print(f" Embeddings validation FAILED: {embeddings_validation['errors']}")
             return None, None, None, None, None, None, []  # Critical failure - bad embeddings
         else:
-            print(f"✅ Embeddings validation PASSED")
+            print(f" Embeddings validation PASSED")
 
         if embeddings_validation["warnings"]:
-            print(f"⚠️  Embeddings warnings: {embeddings_validation['warnings']}")
+            print(f"  Embeddings warnings: {embeddings_validation['warnings']}")
 
-        # Print key statistics
+
         stats = embeddings_validation["statistics"]
         print(
-            f"📊 Embedding Stats: Dimension: {stats.get('embedding_dimension', 0)}, Avg norm: {stats.get('avg_norm', 0):.3f}")
+            f" Embedding Stats: Dimension: {stats.get('embedding_dimension', 0)}, Avg norm: {stats.get('avg_norm', 0):.3f}")
 
     print("Creating FAISS index...")
     index = create_faiss_index(embeddings, embeddings.shape[1])
@@ -198,7 +197,7 @@ def process_documents_from_folder_hybrid(folder_path, chunking_method="standard"
     save_data(bm25_model, tokenized_corpus, chunks, metadata, chunking_method, model_name)
     print(f"Successfully saved {chunking_method} chunking data with model {model_name or embedding_model_name}.")
 
-    # Generate validation report if validation was enabled
+ 
     if enable_validation and validator:
         try:
             all_validations = {
