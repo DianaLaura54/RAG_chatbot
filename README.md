@@ -1,7 +1,7 @@
 This was my diploma project(NLP based). My chatbot StorySage answers questions from children's books, with a normal pipeline or an advanced pipeline where the user can pick the embedding model, the type of chunking, search, the large language model(llama3 or mistral), if the
 user wants query optimization or the use of reranker. Has a "generate random question" option that generates a question from my QA pairs CSV file where I stored 500 QA from the books.
-It ensures the data is validated through the open-source Python library Great Expectations.
-It also features a quiz selection and generator option from those books. It uses metrics such as BERTScore and ROUGE-L, has different kind of plots, extracts the images that belong to the chunks returned. It has text to speech option that makes the answer easier 
-for children to understand.
+It ensures the data is validated through the open-source Python library Great Expectations. It also has an AWS chat mode that creates a bucket and processes text from those documents specifically.
+It also features a quiz selection and generator option from those books. It uses metrics such as BERTScore and ROUGE-L, has different kind of plots, extracts the images that belong to the chunks returned. It has text to speech option that makes the answer easier for children to understand. 
 I have pages for the metrics of the last response and metrics for the overall responses of the chatbot(including graphs of the responses for the chunk-answer,answer-response,chunk-response). I also have a page for the stored scores and responses from the CSV with full entry details.
+
 
