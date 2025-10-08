@@ -3,5 +3,4 @@ user wants query optimization or the use of reranker. Has a "generate random que
 It ensures the data is validated through the open-source Python library Great Expectations. It also has an AWS chat mode that creates a bucket and processes text from those documents specifically.
 It also features a quiz selection and generator option from those books. It uses metrics such as BERTScore and ROUGE-L, has different kind of plots, extracts the images that belong to the chunks returned. It has text to speech option that makes the answer easier for children to understand. 
 I have pages for the metrics of the last response and metrics for the overall responses of the chatbot(including graphs of the responses for the chunk-answer,answer-response,chunk-response). I also have a page for the stored scores and responses from the CSV with full entry details.
-
-
+Has a PowerBi file with some graphs.
