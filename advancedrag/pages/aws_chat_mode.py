@@ -32,7 +32,7 @@ def main():
 def show_session_debug():
     processing_result = st.session_state.get('aws_processing_result')
     if processing_result:
-        st.write("✓ Documents in session state:")
+        st.write(" Documents in session state:")
         st.json({
             'total_documents': processing_result.get('total_documents'),
             'processed_documents': processing_result.get('processed_documents'),
